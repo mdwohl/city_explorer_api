@@ -30,3 +30,15 @@ Start time: 3pm
 Finish time: 5:45pm
 
 Actual time needed to complete: 2hr 45min
+
+<!---->
+
+Number and name of feature: Day 2: error catching, locations, trails
+
+Estimate of time needed to complete: 4 hours
+
+Start time: 2:45pm
+
+Finish time: 
+
+Actual time needed to complete: 
