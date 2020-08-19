@@ -4,11 +4,15 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+const superagent = require('superagent');
 
 //Global Vars
 const PORT = process.env.PORT || 3003;
 const app = express();
 app.use(cors());
+const GEOCODE_API_KEY = process.env.GEOCODE_API_KEY;
+const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
+const TRAILS_API_KEY = process.env.TRAILS_API_KEY;
 
 //Start server
 app.listen(PORT, () => console.log(`listening to port: ${PORT}`));
@@ -29,42 +33,72 @@ function Weather(weatherObject){
   this.time = weatherObject.valid_date;
 }
 
-//Locations
-app.get('/location', (request, response) =>{
-  const jsonObject = require('./data/location.json');
-  const constructLocation = new Location(jsonObject);
-
-  response.send(constructLocation);
-});
-
-//Weather
-app.get('/weather', sendWeatherData); 
-function sendWeatherData(request, response){
-  const weatherObject = require('./data/weather.json');
-  const weatherDataFromJson = weatherObject.data;
-  const weatherArray = [];
-
-  weatherDataFromJson.forEach(weatherObject =>{
-    const constructWeather = new Weather(weatherObject);
-    weatherArray.push(constructWeather);
-  })
-
-  response.send(weatherArray);
+function Trail(trailObject){
+  this.name = trailObject.name;
+  this.location = trailObject.location;
+  this.length = trailObject.length;
+  this.star_votes = trailObject.star_votes;
+  this.stars = trailObject.stars;
+  this.summary = trailObject.summary;
+  this.conditions = trailObject.conditions;
+  this.condition_date = trailObject.condtion_date;
+  this.condition_time = trailObject.condition_time;
 }
 
-// app.get('/weather', sendWeatherData);
+//Locations
+app.get('/location', sendLocation)
+function sendLocation(request, response){
+  const searchEntry = request.query.city;
+  const searchUrl = `https://us1.locationiq.com/v1/search.php?key=${GEOCODE_API_KEY}&q=${searchEntry}&format=json`;
 
-// function sendWeatherData(request, response){
-//   const jsonWeatherObject = require('./data/weather.json');
-//   const weatherArray = jsonWeatherObject.data.valid_date;
-//   const newWeatherArr = [];
+  superagent.get(searchUrl)
+    .then(locationSearchReturn => {
+      const resultArray = locationSearchReturn.body;
+      const constructLocation = new Location(resultArray)
+      response.send(constructLocation)
+    }).catch(error => {
+      console.log(error);
+      response.status(500).send(error.message);
+    })
 
-//   weatherArray.forEach(newWeatherObject => {
-//     const newWeather = new Weather(newWeatherObject);
-//     newWeatherArr.push(newWeather);
-
-//   })
+}
 
 
+//Weather
+app.get('/weather', sendWeatherData);
+function sendWeatherData(request, response){
+  let lat = request.query.latitude;
+  let lon = request.query.longitude;
+  const weatherSearchUrl = `https://api.weatherbit.io/v2.0/forecast/daily?&days=8&lat=${lat}&lon=${lon}&key=${WEATHER_API_KEY}`;
 
+  superagent.get(weatherSearchUrl)
+    .then(weatherReturn => {
+      const returningWeather = weatherReturn.body.data;
+      console.log(returningWeather);
+      const weatherArray = returningWeather.map(index => new Weather(index));
+      response.send(weatherArray);
+    }).catch(error => {
+      console.log(error);
+      response.status(500).send(error.message);
+    })
+}
+
+//Trails
+app.get('/trails', sendTrailData);
+function sendTrailData(request, response){
+  let lat = request.query.latitude;
+  let lon = request.query.longitude;
+  const trailsSearchUrl = `https://www.hikingproject.com/data/get-trails?lat=${lat}&lon=${lon}&maxDistance=10&key=${TRAILS_API_KEY}`;
+
+  superagent.get(trailsSearchUrl)
+    .then(trailReturn => {
+      const returningTrails = trailReturn.body.trails;
+      // console.log(returningTrails);
+      const trailArray = returningTrails.map(index => new Trail(index));
+      response.send(trailArray);
+    }).catch(error => {
+      console.log(error);
+      response.status(500).send(error.message);
+    })
+}
 
