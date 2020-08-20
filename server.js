@@ -3,22 +3,21 @@
 //List of Packages
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
 const superagent = require('superagent');
 const pg = require('pg');
-const { response, request } = require('express');
+require('dotenv').config();
 
 //Global Vars
 const PORT = process.env.PORT || 3003;
 const app = express();
-app.use(cors());
 const GEOCODE_API_KEY = process.env.GEOCODE_API_KEY;
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const TRAILS_API_KEY = process.env.TRAILS_API_KEY;
 const DATABASE_URL = process.env.DATABASE_URL;
-const client = new pg.Client(DATABASE_URL);
 
-//Start server
+//Configure and start server
+app.use(cors());
+const client = new pg.Client(DATABASE_URL);
 client.connect()
   .then(() => {
     app.listen(PORT, () => console.log(`listening to port: ${PORT}`));
@@ -26,12 +25,12 @@ client.connect()
 
 //Constructor functions
 
-function Location(jsonObject){
+function Location(locationObject){
 
-  this.search_query = jsonObject[0].icon;
-  this.formatted_query = jsonObject[0].display_name;
-  this.latitude = jsonObject[0].lat;
-  this.longitude = jsonObject[0].lon;
+  this.search_query = locationObject[0].icon;
+  this.formatted_query = locationObject[0].display_name;
+  this.latitude = locationObject[0].lat;
+  this.longitude = locationObject[0].lon;
 }
 
 function Weather(weatherObject){
@@ -52,27 +51,46 @@ function Trail(trailObject){
   this.condition_time = trailObject.condition_time;
 }
 
+//routes
+app.get('/location', sendLocation);
+app.get('/weather', sendWeatherData);
+app.get('/trails', sendTrailData);
+// app.get('/movies', sendMovieData);
+// app.get('/yelp', sendYelpData);
+
 //Locations
-app.get('/location', sendLocation)
 function sendLocation(request, response){
   const searchEntry = request.query.city;
   const searchUrl = `https://us1.locationiq.com/v1/search.php?key=${GEOCODE_API_KEY}&q=${searchEntry}&format=json`;
 
-  superagent.get(searchUrl)
-    .then(locationSearchReturn => {
-      const resultArray = locationSearchReturn.body;
-      const constructLocation = new Location(resultArray)
-      response.send(constructLocation)
-    }).catch(error => {
-      console.log(error);
-      response.status(500).send(error.message);
-    })
 
-}
+  client.query('SELECT * FROM table_locations WHERE search_query=$1;', [searchEntry])
+    .then(resultFromPG => {
+      if (resultFromPG.rowCount === 1) {
+        console.log('found in database');
+        response.send(resultFromPG.rows[0]);
+      } else {
+        superagent.get(searchUrl)
+          .then(locationSearchReturn => {
+            console.log('not found in database')
+            const resultArray = locationSearchReturn.body;
+            const constructLocation = new Location(resultArray);
+            const locationsArry = [searchEntry, constructLocation.formatted_query, constructLocation.latitude, constructLocation.longitude];
+
+            const savedLocation = 'INSERT INTO table_locations (search_query, formatted_query, latitude,longitude) VALUES ($1, $2, $3, $4);'
+            client.query(savedLocation, locationsArry);
+            response.send(constructLocation);
+          }).catch(error => {
+            console.log(error);
+            response.status(500).send(error.message);
+          })
+      }
+    }
+    )}
 
 
 //Weather
-app.get('/weather', sendWeatherData);
+
 function sendWeatherData(request, response){
   let lat = request.query.latitude;
   let lon = request.query.longitude;
@@ -81,7 +99,6 @@ function sendWeatherData(request, response){
   superagent.get(weatherSearchUrl)
     .then(weatherReturn => {
       const returningWeather = weatherReturn.body.data;
-      console.log(returningWeather);
       const weatherArray = returningWeather.map(index => new Weather(index));
       response.send(weatherArray);
     }).catch(error => {
@@ -91,7 +108,7 @@ function sendWeatherData(request, response){
 }
 
 //Trails
-app.get('/trails', sendTrailData);
+
 function sendTrailData(request, response){
   let lat = request.query.latitude;
   let lon = request.query.longitude;
@@ -100,7 +117,6 @@ function sendTrailData(request, response){
   superagent.get(trailsSearchUrl)
     .then(trailReturn => {
       const returningTrails = trailReturn.body.trails;
-      // console.log(returningTrails);
       const trailArray = returningTrails.map(index => new Trail(index));
       response.send(trailArray);
     }).catch(error => {
@@ -109,12 +125,6 @@ function sendTrailData(request, response){
     })
 }
 
-//Location check function
-function checkIfLocationExists(){
-  if('/location' === DATABASE_URL){
-    response.client.send(location);
-  } else if ('/location' !== DATABASE_URL){
-    app.get('/location', sendLocation)
-  }
-}
-checkIfLocationExists();
+//movies
+
+//yelp
