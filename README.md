@@ -42,3 +42,15 @@ Start time: 2:45pm
 Finish time: 5:10
 
 Actual time needed to complete: 2hr 25min
+
+<!---->
+
+Number and name of feature: Day 3: databases
+
+Estimate of time needed to complete: 4 hours
+
+Start time: 2:40pm
+
+Finish time: 
+
+Actual time needed to complete: 
