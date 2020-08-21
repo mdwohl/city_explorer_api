@@ -14,6 +14,8 @@ const GEOCODE_API_KEY = process.env.GEOCODE_API_KEY;
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const TRAILS_API_KEY = process.env.TRAILS_API_KEY;
 const DATABASE_URL = process.env.DATABASE_URL;
+const MOVIE_API_KEY = process.env.MOVIE_API_KEY;
+const YELP_API_KEY = process.env.YELP_API_KEY;
 
 //Configure and start server
 app.use(cors());
@@ -51,12 +53,27 @@ function Trail(trailObject){
   this.condition_time = trailObject.condition_time;
 }
 
+function Movie(movieObject){
+  this.title = movieObject.title;
+  this.overview = movieObject.overview;
+  this.average_votes = movieObject.vote_average;
+  this.total_votes = movieObject.vote_count;
+  // this.image_url = movieObject.poster_path;
+  // image doesn't render...front end issue, perhaps.
+  this.popularity = movieObject.popularity;
+  this.released_on = movieObject.release_date;
+}
+
+function Yelp(yelpObject){
+
+}
+
 //routes
 app.get('/location', sendLocation);
 app.get('/weather', sendWeatherData);
 app.get('/trails', sendTrailData);
-// app.get('/movies', sendMovieData);
-// app.get('/yelp', sendYelpData);
+app.get('/movies', sendMovieData);
+app.get('/yelp', sendYelpData);
 
 //Locations
 function sendLocation(request, response){
@@ -127,4 +144,38 @@ function sendTrailData(request, response){
 
 //movies
 
+function sendMovieData(request, response){
+  console.log(request.query.search_query);
+  const searchEntry = request.query.search_query;
+  const movieSearchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${MOVIE_API_KEY}&language=en-US&query=${searchEntry}&page=1&include_adult=false`
+  console.log(movieSearchUrl);
+  superagent.get(movieSearchUrl)
+    .then(movieReturn => {
+      console.log(movieReturn.body.results[0]);
+      const returningMovie = movieReturn.body.results;
+      const movieArray = returningMovie.map(index => new Movie(index));
+      response.send(movieArray);
+    }).catch(error => {
+      console.log(error);
+      response.status(500).send(error.message);
+    })
+}
+
 //yelp
+
+function sendYelpData(request, response){
+  console.log(request.query.search_query);
+  const searchEntry = request.query.search_query;
+  const yelpSearchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${MOVIE_API_KEY}&language=en-US&query=${searchEntry}&page=1&include_adult=false`
+  console.log(yelpSearchUrl);
+  superagent.get(yelpSearchUrl)
+    .then(yelpReturn => {
+      console.log(yelpReturn.body.results[0]);
+      const returningYelp = yelpReturn.body.results;
+      const yelpArray = returningYelp.map(index => new Yelp(index));
+      response.send(yelpArray);
+    }).catch(error => {
+      console.log(error);
+      response.status(500).send(error.message);
+    })
+}

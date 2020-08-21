@@ -51,6 +51,18 @@ Estimate of time needed to complete: 4 hours
 
 Start time: 2:40pm
 
+Finish time: Next day, 4:30pm
+
+Actual time needed to complete: 6hr
+
+<!---->
+
+Number and name of feature: Day 4: additional APIs for Yelp and Movies
+
+Estimate of time needed to complete: 2 hours
+
+Start time: 4:30
+
 Finish time: 
 
 Actual time needed to complete: 
