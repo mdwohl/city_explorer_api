@@ -65,7 +65,11 @@ function Movie(movieObject){
 }
 
 function Yelp(yelpObject){
-
+  this.name = yelpObject.name;
+  this.image_url = yelpObject.image_url;
+  this.price = yelpObject.price;
+  this.rating = yelpObject.rating;
+  this.url = yelpObject.url;
 }
 
 //routes
@@ -147,7 +151,7 @@ function sendTrailData(request, response){
 function sendMovieData(request, response){
   console.log(request.query.search_query);
   const searchEntry = request.query.search_query;
-  const movieSearchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${MOVIE_API_KEY}&language=en-US&query=${searchEntry}&page=1&include_adult=false`
+  const movieSearchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${MOVIE_API_KEY}&query=${searchEntry}`
   console.log(movieSearchUrl);
   superagent.get(movieSearchUrl)
     .then(movieReturn => {
@@ -165,13 +169,15 @@ function sendMovieData(request, response){
 
 function sendYelpData(request, response){
   console.log(request.query.search_query);
-  const searchEntry = request.query.search_query;
-  const yelpSearchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${MOVIE_API_KEY}&language=en-US&query=${searchEntry}&page=1&include_adult=false`
+  let lat = request.query.latitude;
+  let lon = request.query.longitude;
+  const yelpSearchUrl = `https://api.yelp.com/v3/businesses/search?term=restaurants&api_key=${YELP_API_KEY}&latitude=${lat}&longitude=${lon}`
   console.log(yelpSearchUrl);
   superagent.get(yelpSearchUrl)
+    .set('Authorization', `Bearer ${YELP_API_KEY}`)
     .then(yelpReturn => {
-      console.log(yelpReturn.body.results[0]);
-      const returningYelp = yelpReturn.body.results;
+      console.log(yelpReturn.body.businesses);
+      const returningYelp = yelpReturn.body.businesses;
       const yelpArray = returningYelp.map(index => new Yelp(index));
       response.send(yelpArray);
     }).catch(error => {
